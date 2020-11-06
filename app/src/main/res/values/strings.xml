@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Login</string>
+    <string name="login">Login</string>
+    <string name="pass">Pass</string>
+    <string name="registration">Registration</string>
+    <string name="save_login_external">Хранить логин во внешнем хранилище</string>
+</resources>
