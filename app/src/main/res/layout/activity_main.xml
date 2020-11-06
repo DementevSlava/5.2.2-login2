@@ -29,7 +29,7 @@
         android:layout_height="wrap_content"
         android:text="@string/registration"/>
     <CheckBox
-        android:id="@+id/checkbox"
+        android:id="@+id/checkboxStorage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/save_login_external"/>
