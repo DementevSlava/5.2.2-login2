@@ -18,6 +18,10 @@ import androidx.core.content.ContextCompat;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -59,23 +63,45 @@ public class MainActivity extends AppCompatActivity {
         checkBox = findViewById(R.id.checkboxStorage);
         sharedPrefCheck = getSharedPreferences("CheckMemory", MODE_PRIVATE);
 
+        if (sharedPrefCheck.contains("memory")){
+           String status = sharedPrefCheck.getString("memory", "");
+            checkBox.setChecked(status.equals("external"));
+        }
+
 
         regBtn.setOnClickListener(v -> {
             String editLogin = enterLogin.getText().toString();
             String editPass = enterPass.getText().toString();
 
-            saveIntoInternalStorage(editLogin, editPass);
+            if (sharedPrefCheck.getString("memory", "internal").equals("internal")){
+                saveIntoInternalStorage(editLogin, editPass);
+            } else {
+                saveIntoExternalStorage(editLogin, editPass);
+            }
+
+
         });
 
         loginBtn.setOnClickListener(v -> {
             String editLogin = enterLogin.getText().toString();
             String editPass = enterPass.getText().toString();
-            String[] user = readFromInternalStorage();
-
-            if (editLogin.equals(user[0]) && editPass.equals(user[1])){
-                Toast.makeText(this, "Данные верны", Toast.LENGTH_SHORT).show();
+            String[] user;
+            if (sharedPrefCheck.getString("memory", "internal").equals("internal")){
+                user = readFromInternalStorage();
             } else {
-                Toast.makeText(this, "Неверные данные", Toast.LENGTH_SHORT).show();
+                user = readFromExternalStorage();
+            }
+
+
+
+            if (user != null){
+                if (editLogin.equals(user[0]) && editPass.equals(user[1])){
+                    Toast.makeText(this, "Данные верны", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Неверные данные", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Нет зарегистрированных пользователей", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -91,11 +117,80 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
+
+    private void saveIntoExternalStorage(String editLogin, String editPass) {
+        if (isExternalStorageWritable()){
+            File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), USER_FILE);
+            FileWriter fileWriter = null;
+            try {
+                fileWriter = new FileWriter(file, false);
+                fileWriter.write(String.format("%s;%s", editLogin, editPass));
+                Toast.makeText(this, "Данные сохранены", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка сохранения", Toast.LENGTH_SHORT).show();
+            } finally {
+                if (fileWriter != null){
+                    try {
+                        fileWriter.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    private void saveIntoInternalStorage(String editLogin, String editPass) {
+        BufferedWriter writer = null;
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(openFileOutput(USER_FILE, Context.MODE_PRIVATE)));
+            writer.write(String.format("%s;%s", editLogin, editPass));
+            Toast.makeText(this, "Данные сохранены", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Ошибка сохранения", Toast.LENGTH_SHORT).show();
+        } finally {
+            if (writer != null){
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private String[] readFromExternalStorage() {
+        FileReader fileReader = null;
+        BufferedReader bufferedReader = null;
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), USER_FILE);
+        try {
+            fileReader = new FileReader(file);
+            bufferedReader = new BufferedReader(fileReader);
+            return bufferedReader.readLine().split(";");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            if (bufferedReader != null){
+                try {
+                    bufferedReader.close();
+                    fileReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+    }
+
     private String[] readFromInternalStorage() {
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(new InputStreamReader(openFileInput(USER_FILE)));
-            return reader.readLine().split("\n\n");
+            return reader.readLine().split(";");
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -111,25 +206,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void saveIntoInternalStorage(String editLogin, String editPass) {
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new OutputStreamWriter(openFileOutput(USER_FILE, Context.MODE_PRIVATE)));
-            writer.write(String.format("%s\n\n%s", editLogin, editPass));
-            Toast.makeText(this, "Данные сохранены", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Ошибка сохранения", Toast.LENGTH_SHORT).show();
-        } finally {
-            if (writer != null){
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
+
 
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
